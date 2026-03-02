@@ -1,0 +1,27 @@
+# Query: http://localhost:3001
+# ContextLines: 1
+
+6 results - 2 files
+
+src/App.jsx:
+  36      try {
+  37:       const response = await fetch('http://localhost:3001/api/chat', {
+  38          method: 'POST',
+
+  78  
+  79:         await fetch('http://localhost:3001/api/orders', {
+  80            method: 'POST',
+
+src/Kitchen.jsx:
+  10          const [kitchenRes, barRes] = await Promise.all([
+  11:           fetch('http://localhost:3001/api/orders'),
+  12:           fetch('http://localhost:3001/api/bar-orders')
+  13          ])
+
+  28    const markKitchenDone = async (index) => {
+  29:     await fetch(`http://localhost:3001/api/orders/${index}`, { method: 'DELETE' })
+  30      setKitchenOrders(prev => prev.filter((_, i) => i !== index))
+
+  33    const markBarDone = async (index) => {
+  34:     await fetch(`http://localhost:3001/api/bar-orders/${index}`, { method: 'DELETE' })
+  35      setBarOrders(prev => prev.filter((_, i) => i !== index))

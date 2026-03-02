@@ -8,8 +8,8 @@ export default function Kitchen() {
     const fetchOrders = async () => {
       try {
         const [kitchenRes, barRes] = await Promise.all([
-          fetch('http://localhost:3001/api/orders'),
-          fetch('http://localhost:3001/api/bar-orders')
+          fetch('https://nordic-core-production.up.railway.app/api/orders'),
+          fetch('https://nordic-core-production.up.railway.app/api/bar-orders')
         ])
         const kitchen = await kitchenRes.json()
         const bar = await barRes.json()
@@ -26,12 +26,12 @@ export default function Kitchen() {
   }, [])
 
   const markKitchenDone = async (index) => {
-    await fetch(`http://localhost:3001/api/orders/${index}`, { method: 'DELETE' })
+    await fetch(`https://nordic-core-production.up.railway.app/api/orders/${index}`, { method: 'DELETE' })
     setKitchenOrders(prev => prev.filter((_, i) => i !== index))
   }
 
   const markBarDone = async (index) => {
-    await fetch(`http://localhost:3001/api/bar-orders/${index}`, { method: 'DELETE' })
+    await fetch(`https://nordic-core-production.up.railway.app/api/bar-orders/${index}`, { method: 'DELETE' })
     setBarOrders(prev => prev.filter((_, i) => i !== index))
   }
 

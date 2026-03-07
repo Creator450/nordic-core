@@ -1,4 +1,3 @@
-
 const express = require('express')
 const cors = require('cors')
 const app = express()
@@ -10,6 +9,7 @@ let barOrders = []
 
 app.post('/api/chat', async (req, res) => {
   try {
+    const { messages, tableNumber } = req.body
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -17,7 +17,12 @@ app.post('/api/chat', async (req, res) => {
         'x-api-key': process.env.ANTHROPIC_API_KEY,
         'anthropic-version': '2023-06-01'
       },
-      body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, system: "You are a friendly AI waiter at Ice Hotel in Kiruna, Sweden. Help guests order food and drinks. When a guest confirms their order, respond with ORDER_CONFIRMED: followed by a JSON array of items like ORDER_CONFIRMED:["Burger","Beer"]. Be concise and friendly. Speak English and Swedish.", messages: req.body.messages ? req.body.messages : [{ role: "user", content: req.body.message }] })
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: 'You are a friendly waiter at Ice Hotel in Kiruna, Sweden. Help guests order food and drinks. When a guest confirms their order, respond with ORDER_CONFIRMED: followed by items separated by commas.',
+        messages: messages
+      })
     })
     const data = await response.json()
     res.json(data)
@@ -29,48 +34,25 @@ app.post('/api/chat', async (req, res) => {
 app.post('/api/orders', (req, res) => {
   const { table, items } = req.body
   const time = new Date().toLocaleTimeString()
-
-  const drinkKeywords = ['beer', 'juice', 'drink', 'water', 'wine', 'cocktail', 'cider', 'craft', 'lingonberry', 'soda', 'coffee', 'tea']
-
+  const drinkKeywords = ['beer','juice','drink','water','wine','cocktail','cider','soda','coffee','tea']
   const foodItems = items.filter(item => !drinkKeywords.some(d => item.toLowerCase().includes(d)))
   const drinkItems = items.filter(item => drinkKeywords.some(d => item.toLowerCase().includes(d)))
-
-  if (foodItems.length > 0) {
-    kitchenOrders.push({ table, items: foodItems, time })
-  }
-  if (drinkItems.length > 0) {
-    barOrders.push({ table, items: drinkItems, time })
-  }
-
+  if (foodItems.length > 0) kitchenOrders.push({ table, items: foodItems, time })
+  if (drinkItems.length > 0) barOrders.push({ table, items: drinkItems, time })
   res.json({ success: true })
 })
 
-app.get('/api/orders', (req, res) => {
-  res.json(kitchenOrders)
-})
-
-app.get('/api/bar-orders', (req, res) => {
-  res.json(barOrders)
-})
+app.get('/api/orders', (req, res) => res.json(kitchenOrders))
+app.get('/api/bar-orders', (req, res) => res.json(barOrders))
 
 app.delete('/api/orders/:index', (req, res) => {
-  const index = parseInt(req.params.index)
-  if (index >= 0 && index < kitchenOrders.length) {
-    kitchenOrders.splice(index, 1)
-    res.json({ success: true })
-  } else {
-    res.status(400).json({ error: 'Invalid index' })
-  }
+  kitchenOrders.splice(parseInt(req.params.index), 1)
+  res.json({ success: true })
 })
 
 app.delete('/api/bar-orders/:index', (req, res) => {
-  const index = parseInt(req.params.index)
-  if (index >= 0 && index < barOrders.length) {
-    barOrders.splice(index, 1)
-    res.json({ success: true })
-  } else {
-    res.status(400).json({ error: 'Invalid index' })
-  }
+  barOrders.splice(parseInt(req.params.index), 1)
+  res.json({ success: true })
 })
 
-app.listen(process.env.PORT||3001, () => console.log('Server running on port 3001'))
+app.listen(process.env.PORT || 3001, () => console.log('Server running'))

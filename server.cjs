@@ -17,7 +17,7 @@ app.post('/api/chat', async (req, res) => {
         'x-api-key': process.env.ANTHROPIC_API_KEY,
         'anthropic-version': '2023-06-01'
       },
-      body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, messages: [{ role: "user", content: req.body.message }] })
+      body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, system: "You are a friendly AI waiter at Ice Hotel in Kiruna, Sweden. Help guests order food and drinks. When a guest confirms their order, respond with ORDER_CONFIRMED: followed by a JSON array of items like ORDER_CONFIRMED:["Burger","Beer"]. Be concise and friendly. Speak English and Swedish.", messages: req.body.messages || [{ role: "user", content: req.body.message }] })
     })
     const data = await response.json()
     res.json(data)

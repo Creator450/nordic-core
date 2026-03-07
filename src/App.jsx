@@ -1,14 +1,14 @@
 import { useState, useRef, useEffect } from 'react'
 
 const MENU = [
-  { id: 1, category: "Starters", name: "Arctic Shrimp Cocktail", price: 145, description: "Fresh arctic shrimps with our signature sauce" },
-  { id: 2, category: "Starters", name: "Reindeer Carpaccio", price: 165, description: "Thinly sliced reindeer with lingonberry dressing" },
-  { id: 3, category: "Mains", name: "Grilled Arctic Char", price: 285, description: "Fresh char from local waters with seasonal vegetables" },
-  { id: 4, category: "Mains", name: "Reindeer Tenderloin", price: 325, description: "Premium reindeer with root vegetables and cloudberry sauce" },
-  { id: 5, category: "Mains", name: "Vegetarian Nordic Plate", price: 225, description: "Seasonal vegetables, mushrooms and Nordic grains" },
-  { id: 6, category: "Desserts", name: "Cloudberry Parfait", price: 115, description: "Wild cloudberries with vanilla cream" },
-  { id: 7, category: "Drinks", name: "Local Craft Beer", price: 95, description: "Brewed in Kiruna" },
-  { id: 8, category: "Drinks", name: "Lingonberry Juice", price: 65, description: "Fresh pressed, non-alcoholic" },
+  { id: 1, category: "Starters", name: "Arctic Shrimp Cocktail", swedishName: "Arktisk räkcocktail", price: 145, description: "Fresh arctic shrimps with our signature sauce" },
+  { id: 2, category: "Starters", name: "Reindeer Carpaccio", swedishName: "Renkalv carpaccio", price: 165, description: "Thinly sliced reindeer with lingonberry dressing" },
+  { id: 3, category: "Mains", name: "Grilled Arctic Char", swedishName: "Grillad arktisk röding", price: 285, description: "Fresh char from local waters with seasonal vegetables" },
+  { id: 4, category: "Mains", name: "Reindeer Tenderloin", swedishName: "Renfilé", price: 325, description: "Premium reindeer with root vegetables and cloudberry sauce" },
+  { id: 5, category: "Mains", name: "Vegetarian Nordic Plate", swedishName: "Vegetarisk nordisk tallrik", price: 225, description: "Seasonal vegetables, mushrooms and Nordic grains" },
+  { id: 6, category: "Desserts", name: "Cloudberry Parfait", swedishName: "Hjortronparfait", price: 115, description: "Wild cloudberries with vanilla cream" },
+  { id: 7, category: "Drinks", name: "Local Craft Beer", swedishName: "Lokalt hantverksöl", price: 95, description: "Brewed in Kiruna" },
+  { id: 8, category: "Drinks", name: "Lingonberry Juice", swedishName: "Lingondricka", price: 65, description: "Fresh pressed, non-alcoholic" },
 ]
 
 const TABLE_NUMBER = 7
@@ -47,20 +47,20 @@ LANGUAGE: Always respond in the same language the customer writes in.
 YOUR WAITER FLOW - follow this order strictly:
 1. Take their main course order
 2. If they order Reindeer Tenderloin or Grilled Arctic Char, ask how they want it cooked (rare/medium rare/medium/well done)
-3. Ask if they would like a starter (förrätt) - suggest Arctic Shrimp Cocktail or Reindeer Carpaccio
+3. Ask if they would like a starter
 4. Ask if they would like something to drink
 5. Once you have everything, show the complete order with each item and total price
-6. Ask "Är det bra så?" (or equivalent in their language)
-7. Only when customer confirms, end your message with: ORDER_CONFIRMED: [all items separated by commas]
+6. Ask for confirmation
+7. Only when customer confirms, end your message with: ORDER_CONFIRMED:[item1,item2,item3]
+   Use ONLY the exact menu item names from the list below, nothing else.
 
 IMPORTANT RULES:
 - Keep responses short and natural like a real waiter - max 2-3 sentences
 - Never send ORDER_CONFIRMED more than once
-- Never ask for confirmation twice
-- Only send ORDER_CONFIRMED after customer says yes/ja/correct to the final summary
+- Only send ORDER_CONFIRMED after customer confirms
 
 Menu:
-${MENU.map(item => `- ${item.name}: ${item.price} SEK - ${item.description}`).join('\n')}
+${MENU.map(item => `- ${item.name}: ${item.price} SEK`).join('\n')}
 
 Current order Table ${TABLE_NUMBER}: ${order.length > 0 ? order.map(i => i.name).join(', ') : 'Nothing yet'}`,
           messages: [...messages, { role: 'user', content: userMessage }].map(m => ({ role: m.role, content: m.content }))
@@ -71,18 +71,24 @@ Current order Table ${TABLE_NUMBER}: ${order.length > 0 ? order.map(i => i.name)
       const assistantMessage = data.content[0].text
 
       if (assistantMessage.includes('ORDER_CONFIRMED:')) {
-        const orderPart = assistantMessage.split('ORDER_CONFIRMED:')[1].trim()
-        const items = orderPart.split(',').map(s => s.trim())
-        const orderedItems = items.map(name => MENU.find(m => m.name.toLowerCase().includes(name.toLowerCase()))).filter(Boolean)
+        const orderPart = assistantMessage.split('ORDER_CONFIRMED:')[1].trim().replace(/[\[\]]/g, '')
+        const itemNames = orderPart.split(',').map(s => s.trim()).filter(s => s.length > 0 && !s.includes(' ') === false)
+        
+        const orderedItems = itemNames.map(name => MENU.find(m => m.name.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(m.name.toLowerCase()))).filter(Boolean)
         setOrder(prev => [...prev, ...orderedItems])
+
+        const swedishItems = itemNames.map(name => {
+          const menuItem = MENU.find(m => m.name.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(m.name.toLowerCase()))
+          return menuItem ? menuItem.swedishName : name
+        })
 
         await fetch('https://nordic-core.onrender.com/api/orders', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ table: TABLE_NUMBER, items: items })
+          body: JSON.stringify({ table: TABLE_NUMBER, items: swedishItems })
         })
 
-        setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage.replace(`ORDER_CONFIRMED: ${orderPart}`, '').trim() + '\n\n✅ Your order has been sent to the kitchen!' }])
+        setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage.split('ORDER_CONFIRMED:')[0].trim() + '\n\n✅ Your order has been sent!' }])
       } else {
         setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }])
       }

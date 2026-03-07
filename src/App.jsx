@@ -34,7 +34,7 @@ export default function App() {
     setLoading(true)
 
     try {
-      const response = await fetch('https://nordic-core-production.up.railway.app/api/chat', {
+      const response = await fetch('https://nordic-core.onrender.com/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -76,7 +76,7 @@ Current order Table ${TABLE_NUMBER}: ${order.length > 0 ? order.map(i => i.name)
         const orderedItems = items.map(name => MENU.find(m => m.name.toLowerCase().includes(name.toLowerCase()))).filter(Boolean)
         setOrder(prev => [...prev, ...orderedItems])
 
-        await fetch('https://nordic-core-production.up.railway.app/api/orders', {
+        await fetch('https://nordic-core.onrender.com/api/orders', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ table: TABLE_NUMBER, items: items })

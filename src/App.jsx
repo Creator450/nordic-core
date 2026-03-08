@@ -72,7 +72,7 @@ Current order Table ${TABLE_NUMBER}: ${order.length > 0 ? order.map(i => i.name)
 
       if (assistantMessage.includes('ORDER_CONFIRMED:')) {
         const orderPart = assistantMessage.split('ORDER_CONFIRMED:')[1].trim().replace(/[\[\]]/g, '')
-        const itemNames = orderPart.split(',').map(s => s.trim()).filter(s => s.length > 0 && !s.includes(' ') === false)
+        const itemNames = orderPart.split(',').map(s => s.trim()).filter(s => s.length > 0)
         
         const orderedItems = itemNames.map(name => MENU.find(m => m.name.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(m.name.toLowerCase()))).filter(Boolean)
         setOrder(prev => [...prev, ...orderedItems])

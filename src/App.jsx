@@ -41,31 +41,33 @@ export default function App() {
           model: 'claude-sonnet-4-20250514',
           max_tokens: 1000,
           system: `You are a friendly, professional waiter at Ice Hotel in Kiruna, Sweden.
-
 LANGUAGE: Always respond in the same language the customer writes in.
-
-YOUR WAITER FLOW - follow this order strictly:
+MAXIMUM 2 sentences per response. Be warm but brief.
+YOUR WAITER FLOW:
 1. Take their main course order
-2. If they order Reindeer Tenderloin or Grilled Arctic Char, ask how they want it cooked (rare/medium rare/medium/well done)
+2. Ask how they want it cooked if needed
 3. Ask if they would like a starter
 4. Ask if they would like something to drink
-5. Once you have everything, show the complete order with each item and total price
+5. Show complete order with total price
 6. Ask for confirmation
-7. Only when customer confirms, add ORDER_CONFIRMED:[item1,item2] at the very END of your message.
-RULES FOR ORDER_CONFIRMED:
-- Use ONLY exact menu item names
-- NO sentences, NO thank you, NO descriptions
-- Example: ORDER_CONFIRMED:[Reindeer Tenderloin,Local Craft Beer]
-
-IMPORTANT RULES:
-- MAXIMUM 2 sentences per response. Never write more than 2 sentences. Be warm but brief.
-- Never send ORDER_CONFIRMED more than once
-- Only send ORDER_CONFIRMED after customer confirms
-
+7. When confirmed, use the place_order tool immediately.
 Menu:
-${MENU.map(item => `- ${item.name}: ${item.price} SEK`).join('\n')}
-
-Current order Table ${TABLE_NUMBER}: ${order.length > 0 ? order.map(i => i.name).join(', ') : 'Nothing yet'}`,
+${MENU.map(item => `- ${item.name}: ${item.price} SEK`).join('\n')}`,
+          tools: [{
+            name: 'place_order',
+            description: 'Place the confirmed order to kitchen and bar',
+            input_schema: {
+              type: 'object',
+              properties: {
+                items: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  description: 'List of exact menu item names ordered'
+                }
+              },
+              required: ['items']
+            }
+          }],
           messages: [...messages, { role: 'user', content: userMessage }].map(m => ({ role: m.role, content: m.content }))
         })
       })

@@ -1,15 +1,28 @@
 const express = require('express')
 const cors = require('cors')
+const fs = require('fs')
+const path = require('path')
+
 const app = express()
 app.use(cors())
 app.use(express.json())
 
-let kitchenOrders = []
-let barOrders = []
+const DB_FILE = path.join(__dirname, 'db.json')
+
+const readDB = () => {
+  if (!fs.existsSync(DB_FILE)) {
+    fs.writeFileSync(DB_FILE, JSON.stringify({ kitchenOrders: [], barOrders: [] }))
+  }
+  return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'))
+}
+
+const writeDB = (data) => {
+  fs.writeFileSync(DB_FILE, JSON.stringify(data))
+}
 
 app.post('/api/chat', async (req, res) => {
   try {
-    const { messages, tableNumber } = req.body
+    const { messages } = req.body
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -20,7 +33,7 @@ app.post('/api/chat', async (req, res) => {
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
-        system: 'You are a friendly waiter at Ice Hotel in Kiruna, Sweden. Help guests order food and drinks. When a guest confirms their order, respond with ORDER_CONFIRMED: followed by items separated by commas.',
+        system: 'You are a friendly waiter at Ice Hotel in Kiruna, Sweden. Help guests order food and drinks. When a guest confirms their order, respond with ORDER_CONFIRMED:[item1,item2] using exact menu item names.',
         messages: messages
       })
     })
@@ -34,24 +47,30 @@ app.post('/api/chat', async (req, res) => {
 app.post('/api/orders', (req, res) => {
   const { table, items } = req.body
   const time = new Date().toLocaleTimeString()
-  const drinkKeywords = ['beer','juice','drink','water','wine','cocktail','cider','soda','coffee','tea']
+  const db = readDB()
+  const drinkKeywords = ['beer','juice','drink','water','wine','cocktail','cider','soda','coffee','tea','öl','dricka','juice','kaffe','te']
   const foodItems = items.filter(item => !drinkKeywords.some(d => item.toLowerCase().includes(d)))
   const drinkItems = items.filter(item => drinkKeywords.some(d => item.toLowerCase().includes(d)))
-  if (foodItems.length > 0) kitchenOrders.push({ table, items: foodItems, time })
-  if (drinkItems.length > 0) barOrders.push({ table, items: drinkItems, time })
+  if (foodItems.length > 0) db.kitchenOrders.push({ table, items: foodItems, time })
+  if (drinkItems.length > 0) db.barOrders.push({ table, items: drinkItems, time })
+  writeDB(db)
   res.json({ success: true })
 })
 
-app.get('/api/orders', (req, res) => res.json(kitchenOrders))
-app.get('/api/bar-orders', (req, res) => res.json(barOrders))
+app.get('/api/orders', (req, res) => res.json(readDB().kitchenOrders))
+app.get('/api/bar-orders', (req, res) => res.json(readDB().barOrders))
 
 app.delete('/api/orders/:index', (req, res) => {
-  kitchenOrders.splice(parseInt(req.params.index), 1)
+  const db = readDB()
+  db.kitchenOrders.splice(parseInt(req.params.index), 1)
+  writeDB(db)
   res.json({ success: true })
 })
 
 app.delete('/api/bar-orders/:index', (req, res) => {
-  barOrders.splice(parseInt(req.params.index), 1)
+  const db = readDB()
+  db.barOrders.splice(parseInt(req.params.index), 1)
+  writeDB(db)
   res.json({ success: true })
 })
 

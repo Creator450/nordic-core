@@ -48,9 +48,21 @@ app.post('/api/orders', (req, res) => {
   const { table, items } = req.body
   const time = new Date().toLocaleTimeString()
   const db = readDB()
-  const drinkKeywords = ['beer','juice','drink','water','wine','cocktail','cider','soda','coffee','tea','öl','dricka','juice','kaffe','te']
-  const foodItems = items.filter(item => !drinkKeywords.some(d => item.toLowerCase().includes(d)))
-  const drinkItems = items.filter(item => drinkKeywords.some(d => item.toLowerCase().includes(d)))
+  const MENU_ITEMS = [
+    'Arctic Shrimp Cocktail', 'Reindeer Carpaccio', 'Grilled Arctic Char',
+    'Reindeer Tenderloin', 'Vegetarian Nordic Plate', 'Cloudberry Parfait',
+    'Local Craft Beer', 'Lingonberry Juice',
+    'Arktisk räkcocktail', 'Renkalv carpaccio', 'Grillad arktisk röding',
+    'Renfilé', 'Vegetarisk nordisk tallrik', 'Hjortronparfait',
+    'Lokalt hantverksöl', 'Lingondricka'
+  ]
+  const cleanItems = items.filter(item => 
+    MENU_ITEMS.some(m => item.toLowerCase().includes(m.toLowerCase()) || m.toLowerCase().includes(item.toLowerCase()))
+  )
+  const finalItems = cleanItems.length > 0 ? cleanItems : items.slice(0, 3).filter(i => i.length < 50)
+  const drinkKeywords = ['beer','juice','drink','water','wine','cocktail','cider','soda','coffee','tea','öl','dricka','kaffe','te']
+  const foodItems = finalItems.filter(item => !drinkKeywords.some(d => item.toLowerCase().includes(d)))
+  const drinkItems = finalItems.filter(item => drinkKeywords.some(d => item.toLowerCase().includes(d)))
   if (foodItems.length > 0) db.kitchenOrders.push({ table, items: foodItems, time })
   if (drinkItems.length > 0) db.barOrders.push({ table, items: drinkItems, time })
   writeDB(db)

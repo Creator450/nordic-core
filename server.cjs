@@ -33,7 +33,36 @@ app.post('/api/chat', async (req, res) => {
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
-        system: 'You are a friendly waiter at Ice Hotel in Kiruna, Sweden. Help guests order food and drinks. When a guest confirms their order, respond with ORDER_CONFIRMED:[item1,item2] using exact menu item names.',
+        system: `You are a friendly waiter at Ice Hotel in Kiruna, Sweden. 
+Respond in the same language the customer uses.
+Keep responses to maximum 2 sentences.
+Menu:
+- Arctic Shrimp Cocktail: 145 SEK
+- Reindeer Carpaccio: 165 SEK
+- Grilled Arctic Char: 285 SEK
+- Reindeer Tenderloin: 325 SEK
+- Vegetarian Nordic Plate: 225 SEK
+- Cloudberry Parfait: 115 SEK
+- Local Craft Beer: 95 SEK
+- Lingonberry Juice: 65 SEK
+
+Take the order step by step. When customer confirms, use the place_order tool with ONLY the exact menu item names listed above.`,
+        tools: [{
+          name: 'place_order',
+          description: 'Place confirmed order to kitchen and bar. Use exact menu item names only.',
+          input_schema: {
+            type: 'object',
+            properties: {
+              items: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Exact menu item names e.g. ["Reindeer Tenderloin", "Local Craft Beer"]'
+              }
+            },
+            required: ['items']
+          }
+        }],
+        tool_choice: { type: 'auto' },
         messages: messages
       })
     })
@@ -48,9 +77,9 @@ app.post('/api/orders', (req, res) => {
   const { table, items } = req.body
   const time = new Date().toLocaleTimeString()
   const db = readDB()
-  const drinkKeywords = ['beer','juice','drink','water','wine','cocktail','cider','soda','coffee','tea','öl','dricka','kaffe','te','hantverksöl','lingondricka']
-  const foodItems = items.filter(item => !drinkKeywords.some(d => item.toLowerCase().includes(d)))
-  const drinkItems = items.filter(item => drinkKeywords.some(d => item.toLowerCase().includes(d)))
+  const drinkNames = ['Local Craft Beer', 'Lingonberry Juice', 'Lokalt hantverksöl', 'Lingondricka']
+  const foodItems = items.filter(item => !drinkNames.some(d => d.toLowerCase() === item.toLowerCase()))
+  const drinkItems = items.filter(item => drinkNames.some(d => d.toLowerCase() === item.toLowerCase()))
   if (foodItems.length > 0) db.kitchenOrders.push({ table, items: foodItems, time })
   if (drinkItems.length > 0) db.barOrders.push({ table, items: drinkItems, time })
   writeDB(db)

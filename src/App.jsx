@@ -68,6 +68,7 @@ ${MENU.map(item => `- ${item.name}: ${item.price} SEK`).join('\n')}`,
               required: ['items']
             }
           }],
+          tool_choice: { type: 'auto' },
           messages: [...messages, { role: 'user', content: userMessage }].map(m => ({ role: m.role, content: m.content }))
         })
       })

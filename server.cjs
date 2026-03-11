@@ -103,4 +103,84 @@ app.delete('/api/bar-orders/:index', (req, res) => {
   res.json({ success: true })
 })
 
+
+
+app.listen(process.env.PORT || 3001, () => console.log('Server running'))
+// ====================================
+// PIZZERIA - WHATSAPP ORDERING
+// ====================================
+
+app.post('/api/whatsapp', async (req, res) => {
+  try {
+    const incomingMsg = req.body.Body
+    const from = req.body.From
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: `Du är en vänlig beställningsassistent för La Guna Pizzeria i Kiruna.
+Svara på samma språk som kunden skriver på.
+Max 3 meningar per svar.
+Meny:
+KLASSISKA PIZZOR: Margherita-95kr, Vesuvio-105kr, Capricciosa-105kr, Hawaii-105kr, Bolognese-105kr, Cacciatore-105kr, Vegetariana-105kr
+LYXPIZZOR: Kebab special-135kr, Suovas pizza-135kr, Norrbotten-135kr
+MEXIKANSKA: Mexikana-115kr, Azteka-115kr, Acapulco-125kr
+INBAKADE: Calzone-105kr, Calzone Panza-115kr, Calzone special-125kr
+RULLAR: Kebabrulle-95kr, Oxfilérulle-95kr, Kycklingrulle-95kr
+Ta beställningen steg för steg. När kunden bekräftar, använd place_order verktyget.`,
+        tools: [{
+          name: 'place_order',
+          description: 'Skicka bekräftad beställning till köket',
+          input_schema: {
+            type: 'object',
+            properties: {
+              items: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Lista med beställda pizzor/rätter'
+              }
+            },
+            required: ['items']
+          }
+        }],
+        tool_choice: { type: 'auto' },
+        messages: [{ role: 'user', content: incomingMsg }]
+      })
+    })
+
+    const data = await response.json()
+    const textBlock = data.content.find(b => b.type === 'text')
+    const toolUse = data.content.find(b => b.type === 'tool_use')
+    
+    let replyText = textBlock ? textBlock.text : 'Tack för din beställning!'
+
+    if (toolUse) {
+      const items = toolUse.input.items
+      const db = readDB()
+      db.kitchenOrders.push({ 
+        table: `WhatsApp: ${from}`, 
+        items: items, 
+        time: new Date().toLocaleTimeString() 
+      })
+      writeDB(db)
+      replyText += '\n\n✅ Din beställning är skickad till köket!'
+    }
+
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response><Message>${replyText}</Message></Response>`
+    
+    res.set('Content-Type', 'text/xml')
+    res.send(twiml)
+
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
 app.listen(process.env.PORT || 3001, () => console.log('Server running'))

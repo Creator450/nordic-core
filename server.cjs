@@ -2,20 +2,18 @@ const express = require('express')
 const cors = require('cors')
 const fs = require('fs')
 const path = require('path')
-
 const app = express()
 app.use(cors())
 app.use(express.json())
+app.use(express.urlencoded({ extended: false }))
 
 const DB_FILE = path.join(__dirname, 'db.json')
-
 const readDB = () => {
   if (!fs.existsSync(DB_FILE)) {
     fs.writeFileSync(DB_FILE, JSON.stringify({ kitchenOrders: [], barOrders: [] }))
   }
   return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'))
 }
-
 const writeDB = (data) => {
   fs.writeFileSync(DB_FILE, JSON.stringify(data))
 }
@@ -45,7 +43,6 @@ Menu:
 - Cloudberry Parfait: 115 SEK
 - Local Craft Beer: 95 SEK
 - Lingonberry Juice: 65 SEK
-
 Take the order step by step. When customer confirms, use the place_order tool with ONLY the exact menu item names listed above.`,
         tools: [{
           name: 'place_order',
@@ -103,9 +100,6 @@ app.delete('/api/bar-orders/:index', (req, res) => {
   res.json({ success: true })
 })
 
-
-
-app.listen(process.env.PORT || 3001, () => console.log('Server running'))
 // ====================================
 // PIZZERIA - WHATSAPP ORDERING
 // ====================================
@@ -183,4 +177,5 @@ Ta beställningen steg för steg. När kunden bekräftar, använd place_order ve
     res.status(500).json({ error: error.message })
   }
 })
+
 app.listen(process.env.PORT || 3001, () => console.log('Server running'))

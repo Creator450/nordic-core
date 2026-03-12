@@ -150,8 +150,13 @@ Ta beställningen steg för steg. När kunden bekräftar, använd place_order ve
     })
 
     const data = await response.json()
-    const textBlock = data.content.find(b => b.type === 'text')
-    const toolUse = data.content.find(b => b.type === 'tool_use')
+    
+    // Debug - log what we get back
+    console.log('Anthropic response:', JSON.stringify(data))
+
+    const content = data.content || []
+    const textBlock = content.find(b => b.type === 'text')
+    const toolUse = content.find(b => b.type === 'tool_use')
     
     let replyText = textBlock ? textBlock.text : 'Tack för din beställning!'
 
@@ -174,6 +179,7 @@ Ta beställningen steg för steg. När kunden bekräftar, använd place_order ve
     res.send(twiml)
 
   } catch (error) {
+    console.log('Error:', error)
     res.status(500).json({ error: error.message })
   }
 })

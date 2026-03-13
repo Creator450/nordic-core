@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express')
 const cors = require('cors')
 const fs = require('fs')
@@ -8,6 +9,8 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
 
 const DB_FILE = path.join(__dirname, 'db.json')
+const SESSIONS_FILE = path.join(__dirname, 'sessions.json')
+
 const readDB = () => {
   if (!fs.existsSync(DB_FILE)) {
     fs.writeFileSync(DB_FILE, JSON.stringify({ kitchenOrders: [], barOrders: [] }))
@@ -16,6 +19,16 @@ const readDB = () => {
 }
 const writeDB = (data) => {
   fs.writeFileSync(DB_FILE, JSON.stringify(data))
+}
+
+const readSessions = () => {
+  if (!fs.existsSync(SESSIONS_FILE)) {
+    fs.writeFileSync(SESSIONS_FILE, JSON.stringify({}))
+  }
+  return JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8'))
+}
+const writeSessions = (data) => {
+  fs.writeFileSync(SESSIONS_FILE, JSON.stringify(data))
 }
 
 app.post('/api/chat', async (req, res) => {
@@ -109,6 +122,16 @@ app.post('/api/whatsapp', async (req, res) => {
     const incomingMsg = req.body.Body
     const from = req.body.From
 
+    // Load conversation history for this customer
+    const sessions = readSessions()
+    if (!sessions[from]) sessions[from] = []
+    sessions[from].push({ role: 'user', content: incomingMsg })
+
+    // Keep only last 10 messages to avoid token limits
+    if (sessions[from].length > 10) {
+      sessions[from] = sessions[from].slice(-10)
+    }
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -128,7 +151,7 @@ LYXPIZZOR: Kebab special-135kr, Suovas pizza-135kr, Norrbotten-135kr
 MEXIKANSKA: Mexikana-115kr, Azteka-115kr, Acapulco-125kr
 INBAKADE: Calzone-105kr, Calzone Panza-115kr, Calzone special-125kr
 RULLAR: Kebabrulle-95kr, Oxfilérulle-95kr, Kycklingrulle-95kr
-Ta beställningen steg för steg. När kunden bekräftar, använd place_order verktyget.`,
+Ta beställningen steg för steg. När kunden bekräftar sin beställning, använd place_order verktyget OMEDELBART.`,
         tools: [{
           name: 'place_order',
           description: 'Skicka bekräftad beställning till köket',
@@ -145,15 +168,12 @@ Ta beställningen steg för steg. När kunden bekräftar, använd place_order ve
           }
         }],
         tool_choice: { type: 'auto' },
-        messages: [{ role: 'user', content: incomingMsg }]
+        messages: sessions[from]
       })
     })
 
     const data = await response.json()
-    
-    // Debug - log what we get back
-    console.log('Anthropic response:', JSON.stringify(data))
-
+    console.log("API response:", JSON.stringify(data));
     const content = data.content || []
     const textBlock = content.find(b => b.type === 'text')
     const toolUse = content.find(b => b.type === 'tool_use')
@@ -170,7 +190,14 @@ Ta beställningen steg för steg. När kunden bekräftar, använd place_order ve
       })
       writeDB(db)
       replyText += '\n\n✅ Din beställning är skickad till köket!'
+      // Clear session after order placed
+      sessions[from] = []
+    } else {
+      // Save assistant response to session
+      sessions[from].push({ role: 'assistant', content: replyText })
     }
+
+    writeSessions(sessions)
 
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response><Message>${replyText}</Message></Response>`

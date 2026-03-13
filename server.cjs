@@ -98,6 +98,7 @@ app.post('/api/orders', (req, res) => {
 
 app.get('/api/orders', (req, res) => res.json(readDB().kitchenOrders))
 app.get('/api/bar-orders', (req, res) => res.json(readDB().barOrders))
+app.get('/api/laguna-orders', (req, res) => res.json(readDB().kitchenOrders.filter(o => o.table.startsWith('WhatsApp'))))
 
 app.delete('/api/orders/:index', (req, res) => {
   const db = readDB()

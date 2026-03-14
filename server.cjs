@@ -13,7 +13,7 @@ const SESSIONS_FILE = path.join(__dirname, 'sessions.json')
 
 const readDB = () => {
   if (!fs.existsSync(DB_FILE)) {
-    fs.writeFileSync(DB_FILE, JSON.stringify({ kitchenOrders: [], barOrders: [] }))
+    fs.writeFileSync(DB_FILE, JSON.stringify({ kitchenOrders: [], barOrders: [], laGunaOrders: [] }))
   }
   return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'))
 }
@@ -90,7 +90,7 @@ app.post('/api/orders', (req, res) => {
   const drinkNames = ['Local Craft Beer', 'Lingonberry Juice', 'Lokalt hantverksöl', 'Lingondricka']
   const foodItems = items.filter(item => !drinkNames.some(d => d.toLowerCase() === item.toLowerCase()))
   const drinkItems = items.filter(item => drinkNames.some(d => d.toLowerCase() === item.toLowerCase()))
-  if (foodItems.length > 0) db.kitchenOrders.push({ table, items: foodItems, time })
+  if (foodItems.length > 0) db.laGunaOrders.push({ table, items: foodItems, time })
   if (drinkItems.length > 0) db.barOrders.push({ table, items: drinkItems, time })
   writeDB(db)
   res.json({ success: true })
@@ -98,7 +98,7 @@ app.post('/api/orders', (req, res) => {
 
 app.get('/api/orders', (req, res) => res.json(readDB().kitchenOrders))
 app.get('/api/bar-orders', (req, res) => res.json(readDB().barOrders))
-app.get('/api/laguna-orders', (req, res) => res.json(readDB().kitchenOrders.filter(o => o.table.startsWith('WhatsApp'))))
+app.get('/api/laguna-orders', (req, res) => res.json(readDB().laGunaOrders))
 
 app.delete('/api/orders/:index', (req, res) => {
   const db = readDB()
@@ -184,7 +184,7 @@ Ta beställningen steg för steg. När kunden bekräftar sin beställning, anvä
     if (toolUse) {
       const items = toolUse.input.items
       const db = readDB()
-      db.kitchenOrders.push({ 
+      db.laGunaOrders.push({ 
         table: `WhatsApp: ${from}`, 
         items: items, 
         time: new Date().toLocaleTimeString() 

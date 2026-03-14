@@ -107,7 +107,13 @@ app.delete('/api/orders/:index', (req, res) => {
   res.json({ success: true })
 })
 
-app.delete('/api/bar-orders/:index', (req, res) => {
+app.delete("/api/laguna-orders/:index", (req, res) => {
+  const db = readDB()
+  db.laGunaOrders.splice(parseInt(req.params.index), 1)
+  writeDB(db)
+  res.json({ success: true })
+})
+app.delete("/api/bar-orders/:index", (req, res) => {
   const db = readDB()
   db.barOrders.splice(parseInt(req.params.index), 1)
   writeDB(db)

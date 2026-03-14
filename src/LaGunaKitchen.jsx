@@ -14,7 +14,7 @@ export default function LaGunaKitchen() {
   };
 
   const deleteOrder = async (index) => {
-    await fetch(`${API_BASE}/api/orders/${index}`, { method: "DELETE" });
+    await fetch(`${API_BASE}/api/laguna-orders/${index}`, { method: "DELETE" });
     fetchOrders();
   };
 
